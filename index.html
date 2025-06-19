@@ -410,11 +410,7 @@
                 this.camera.top = this.container.clientHeight / 2;
                 this.camera.bottom = this.container.clientHeight / -2;
                 
-                let zoomPadding = 3.0;
-                if (this.params.isFictional || this.planetSelect.value === 'halley') {
-                    zoomPadding = 2.5;
-                }
-                this.camera.zoom = this.container.clientWidth / (a_px * (1 + e) * zoomPadding);
+                this.camera.zoom = this.container.clientWidth / (a_px * (1 + e) * 3.0); 
 
                 this.camera.position.x = -c_px; 
                 
