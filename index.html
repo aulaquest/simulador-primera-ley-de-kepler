@@ -91,10 +91,10 @@
 
         <h3 class="font-bold text-base">Visualización</h3>
         <div class="space-y-2">
-            <label><input type="checkbox" id="foci-check" class="mr-2 accent-indigo-500">Marcar Focos (X)</label>
-            <label><input type="checkbox" id="semi-major-axis-check" class="mr-2 accent-yellow-500">Semieje Mayor (a)</label>
-            <label><input type="checkbox" id="semi-minor-axis-check" class="mr-2 accent-cyan-500">Semieje Menor (b)</label>
-            <label><input type="checkbox" id="d1d2-check" class="mr-2 accent-pink-500">Distancias a focos (d1, d2)</label>
+            <label><input type="checkbox" id="foci-check" class="mr-2 accent-indigo-500" checked>Marcar Focos (X)</label>
+            <label><input type="checkbox" id="semi-major-axis-check" class="mr-2 accent-yellow-500" checked>Semieje Mayor (a)</label>
+            <label><input type="checkbox" id="semi-minor-axis-check" class="mr-2 accent-cyan-500" checked>Semieje Menor (b)</label>
+            <label><input type="checkbox" id="d1d2-check" class="mr-2 accent-pink-500" checked>Distancias a focos (d1, d2)</label>
             <label><input type="checkbox" id="gravity-vector-check" checked class="mr-2 accent-blue-500">Vector Fuerza (Gravedad)</label>
             <label><input type="checkbox" id="velocity-vector-check" checked class="mr-2 accent-green-500">Vector Velocidad</label>
         </div>
@@ -411,14 +411,20 @@
                 const E = this.solveKeplerEquation(M, e);
                 if (isNaN(E)) return; 
                 
-                const r_au = a_au * (1 - e * Math.cos(E));
-                const v = 2 * Math.atan2(Math.sqrt(1 + e) * Math.sin(E / 2), Math.sqrt(1 - e) * Math.cos(E / 2));
+                // --- CÁLCULO DE POSICIÓN CORREGIDO ---
+                // El origen de la escena es el CENTRO de la elipse.
+                // La posición del planeta se calcula con las ecuaciones paramétricas estándar.
+                const b_au = a_au * Math.sqrt(1 - e * e);
+                const planet_x_au = a_au * Math.cos(E);
+                const planet_y_au = b_au * Math.sin(E);
                 
-                this.planet.position.set(r_au * Math.cos(v) * this.PIXELS_PER_AU, r_au * Math.sin(v) * this.PIXELS_PER_AU, 0);
+                this.planet.position.set(planet_x_au * this.PIXELS_PER_AU, planet_y_au * this.PIXELS_PER_AU, 0);
 
+                const r_au = this.planet.position.distanceTo(this.sun.position) / this.PIXELS_PER_AU;
                 const v_kms = 29.78 * Math.sqrt((2 / r_au) - (1 / a_au));
-                this.updateVectors(r_au, E, v_kms);
-                this.updateD1D2(r_au);
+                
+                this.updateVectors(E, v_kms);
+                this.updateD1D2();
                 
                 this.distanceValue.textContent = r_au.toFixed(4);
                 this.yearsValue.textContent = (this.years + (this.time / T)).toFixed(2);
@@ -435,28 +441,35 @@
                 const c = a * e;
                 const b = Math.sqrt(a * a - c * c);
                 
-                this.camera.position.x = -c;
+                // --- GEOMETRÍA CORREGIDA ---
+                // El origen (0,0) es el centro de la elipse.
+                this.camera.position.x = 0; 
                 this.camera.position.y = 0;
 
                 const points = [];
-                for (let i = 0; i <= 360; i++) {
-                    const theta = (i * Math.PI) / 180;
-                    const r = (a * (1 - e * e)) / (1 + e * Math.cos(theta));
-                    points.push(new THREE.Vector3(r * Math.cos(theta), r * Math.sin(theta), 0));
+                const segments = 128;
+                for (let i = 0; i <= segments; i++) {
+                    const theta = (i / segments) * Math.PI * 2;
+                    // Ecuación paramétrica de la elipse centrada en el origen.
+                    points.push(new THREE.Vector3(a * Math.cos(theta), b * Math.sin(theta), 0));
                 }
                 this.orbitLine.geometry.dispose();
                 this.orbitLine.geometry = new THREE.BufferGeometry().setFromPoints(points);
                 
+                // Posicionar el Sol en el foco izquierdo.
+                this.sun.position.set(-c, 0, 0);
                 this.sunFocusMarker.position.copy(this.sun.position);
-                this.emptyFocusMarker.position.set(-2 * c, 0, 0);
-
-                const ellipseCenter = new THREE.Vector3(-c, 0, 0);
+                this.emptyFocusMarker.position.set(c, 0, 0);
+                
+                // Los ejes parten del centro (0,0).
                 this.semiMajorLine.geometry.dispose();
-                this.semiMajorLine.geometry.setFromPoints([ellipseCenter, new THREE.Vector3(a - c, 0, 0)]);
+                this.semiMajorLine.geometry.setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(a, 0, 0)]);
+                
                 this.semiMinorLine.geometry.dispose();
-                this.semiMinorLine.geometry.setFromPoints([ellipseCenter, new THREE.Vector3(-c, b, 0)]);
+                this.semiMinorLine.geometry.setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0, b, 0)]);
+                
                 this.focalDistLine.geometry.dispose();
-                this.focalDistLine.geometry.setFromPoints([ellipseCenter, this.sun.position]);
+                this.focalDistLine.geometry.setFromPoints([new THREE.Vector3(0,0,0), this.sun.position]);
                 
                 this.eccentricityValue.textContent = e.toFixed(4);
                 this.semiMajorAxisValue.textContent = a_au.toFixed(4);
@@ -479,8 +492,9 @@
                 const a = a_au * this.PIXELS_PER_AU;
                 const c = a * e;
                 const b = a * Math.sqrt(1 - e * e);
-                const ellipseCenter = new THREE.Vector3(-c, 0, 0);
-                const emptyFocusPos = new THREE.Vector3(-2 * c, 0, 0);
+
+                const ellipseCenter = new THREE.Vector3(0, 0, 0);
+                const emptyFocusPos = new THREE.Vector3(c, 0, 0);
 
                 for (const key in this.labels) {
                     const sprite = this.labels[key];
@@ -489,20 +503,23 @@
                     }
                 }
                 const offset = 15 / zoom;
-                if(this.labels.a) this.labels.a.position.lerpVectors(ellipseCenter, new THREE.Vector3(a - c, 0, 0), 0.5).y += offset;
-                if(this.labels.b) this.labels.b.position.lerpVectors(ellipseCenter, new THREE.Vector3(-c, b, 0), 0.5).x += offset;
+                if(this.labels.a) this.labels.a.position.lerpVectors(ellipseCenter, new THREE.Vector3(a, 0, 0), 0.5).y += offset;
+                if(this.labels.b) this.labels.b.position.lerpVectors(ellipseCenter, new THREE.Vector3(0, b, 0), 0.5).x += offset;
                 if(this.labels.c) this.labels.c.position.lerpVectors(ellipseCenter, this.sun.position, 0.5).y -= offset;
-                if(this.labels.d1) this.labels.d1.position.copy(this.planet.position).multiplyScalar(0.5).add(new THREE.Vector3(offset, offset, 0));
-                if(this.labels.d2) this.labels.d2.position.copy(this.planet.position).add(emptyFocusPos).multiplyScalar(0.5).add(new THREE.Vector3(-offset, offset, 0));
+                if(this.labels.d1) this.labels.d1.position.lerpVectors(this.planet.position, this.sun.position, 0.5).add(new THREE.Vector3(offset, offset, 0));
+                if(this.labels.d2) this.labels.d2.position.lerpVectors(this.planet.position, emptyFocusPos, 0.5).add(new THREE.Vector3(-offset, offset, 0));
             }
 
-            updateD1D2(r_au) {
+            updateD1D2() {
                 const { a_au, e } = this.params;
-                const emptyFocusPos = new THREE.Vector3(-2 * a_au * e * this.PIXELS_PER_AU, 0, 0);
+                const c = a_au * e * this.PIXELS_PER_AU;
+                const emptyFocusPos = new THREE.Vector3(c, 0, 0);
                 
+                const d1_pixels = this.planet.position.distanceTo(this.sun.position);
+                const d2_pixels = this.planet.position.distanceTo(emptyFocusPos);
+
                 if (this.d1Line && this.d1Line.geometry) {
-                    const d1Geom = this.d1Line.geometry;
-                    const d1Positions = d1Geom.attributes.position;
+                    const d1Positions = this.d1Line.geometry.attributes.position;
                     d1Positions.setXYZ(0, this.sun.position.x, this.sun.position.y, 0);
                     d1Positions.setXYZ(1, this.planet.position.x, this.planet.position.y, 0);
                     d1Positions.needsUpdate = true;
@@ -510,20 +527,20 @@
                 }
 
                 if (this.d2Line && this.d2Line.geometry) {
-                    const d2Geom = this.d2Line.geometry;
-                    const d2Positions = d2Geom.attributes.position;
+                    const d2Positions = this.d2Line.geometry.attributes.position;
                     d2Positions.setXYZ(0, emptyFocusPos.x, emptyFocusPos.y, 0);
                     d2Positions.setXYZ(1, this.planet.position.x, this.planet.position.y, 0);
                     d2Positions.needsUpdate = true;
                     this.d2Line.computeLineDistances();
                 }
-
-                const d2_au = this.planet.position.distanceTo(emptyFocusPos) / this.PIXELS_PER_AU;
-                this.d1d2RelationValue.textContent = `${(r_au + d2_au).toFixed(4)} / ${(2 * a_au).toFixed(4)}`;
+                
+                const d1_au = d1_pixels / this.PIXELS_PER_AU;
+                const d2_au = d2_pixels / this.PIXELS_PER_AU;
+                this.d1d2RelationValue.textContent = `${(d1_au + d2_au).toFixed(4)} / ${(2 * a_au).toFixed(4)}`;
             }
             
-            updateVectors(r_au, E, v_kms) {
-                if (isNaN(r_au) || isNaN(E) || isNaN(v_kms)) return;
+            updateVectors(E, v_kms) {
+                if (isNaN(E) || isNaN(v_kms)) return;
                 
                 const scale = 1 / this.camera.zoom;
                 const forceMagnitude = 40 * scale;
@@ -537,12 +554,16 @@
                 this.gravityArrow.setLength(forceMagnitude, headLength, headWidth);
 
                 this.sunGravityArrow.position.copy(this.sun.position);
-                const sunGravityDir = new THREE.Vector3().copy(this.planet.position).normalize();
+                const sunGravityDir = new THREE.Vector3().subVectors(this.planet.position, this.sun.position).normalize();
                 this.sunGravityArrow.setDirection(sunGravityDir);
                 this.sunGravityArrow.setLength(forceMagnitude, headLength, headWidth);
                 
+                // --- VECTOR VELOCIDAD CORREGIDO ---
+                const { a_au, e } = this.params;
+                const b_au = a_au * Math.sqrt(1 - e*e);
                 this.velocityArrow.position.copy(this.planet.position);
-                const velDir = new THREE.Vector3(-Math.sin(E), Math.sqrt(1 - this.params.e**2) * Math.cos(E), 0).normalize();
+                // La dirección de la velocidad es la derivada de la posición.
+                const velDir = new THREE.Vector3(-a_au * Math.sin(E), b_au * Math.cos(E), 0).normalize();
                 this.velocityArrow.setDirection(velDir);
                 this.velocityArrow.setLength(velocityMagnitude, headLength, headWidth);
             }
