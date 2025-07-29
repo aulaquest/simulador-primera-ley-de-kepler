@@ -393,7 +393,10 @@
 
             solveKeplerEquation(M, e) {
                 let E = M;
-                for (let i = 0; i < 7; i++) { E = E - (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E)); }
+                // FIX: The original equation `E - e*sin(E) - M` was incorrect for the chosen geometric setup.
+                // This resulted in the planet speeding up at aphelion and slowing down at perihelion.
+                // The corrected equation `E + e*sin(E) - M` fixes the physics of the orbital motion.
+                for (let i = 0; i < 7; i++) { E = E - (E + e * Math.sin(E) - M) / (1 + e * Math.cos(E)); }
                 return E;
             }
             
