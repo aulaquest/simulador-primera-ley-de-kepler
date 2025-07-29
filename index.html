@@ -63,18 +63,28 @@
 
     <!-- Controls Panel: Changed to be w-full on mobile and w-80 on desktop. -->
     <div class="w-full md:w-80 bg-gray-800/80 backdrop-blur-sm p-4 overflow-y-auto control-panel space-y-4 text-sm z-10">
-        <h2 class="text-lg font-bold text-white text-center">Control de Simulación</h2>
+       
         
+        <!-- MOVED: Info panel integrated into the control panel, now at the top -->
+        <div class="space-y-1 text-xs text-center bg-gray-900/50 p-3 rounded-lg">
+            <p>Distancia Sol (d1): <span id="distance-value" class="font-mono text-indigo-300">0.00</span> UA</p>
+            <p>Velocidad: <span id="velocity-value" class="font-mono text-green-300">0.00</span> km/s</p>
+            <p>Tiempo: <span id="years-value" class="font-mono text-yellow-300">0.00</span> años</p>
+        </div>
+
         <div class="grid grid-cols-2 gap-2">
             <button id="pause-resume-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-lg">Pausa</button>
             <button id="reset-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-lg">Reiniciar</button>
         </div>
 
-        <!-- NEW: Info panel integrated into the control panel -->
-        <div class="space-y-1 text-xs text-center bg-gray-900/50 p-3 rounded-lg">
-            <p>Distancia Sol (d1): <span id="distance-value" class="font-mono text-indigo-300">0.00</span> UA</p>
-            <p>Velocidad: <span id="velocity-value" class="font-mono text-green-300">0.00</span> km/s</p>
-            <p>Tiempo: <span id="years-value" class="font-mono text-yellow-300">0.00</span> años</p>
+        <!-- MOVED: Simulation speed controls, now below pause/reset -->
+        <div class="space-y-2">
+            
+            <div class="flex justify-between items-center bg-gray-700 rounded-full p-1">
+                 <button id="speed-slow" class="speed-btn px-4 py-1 w-full rounded-full transition-colors">Lento</button>
+                 <button id="speed-normal" class="speed-btn px-4 py-1 w-full rounded-full transition-colors active">Normal</button>
+                 <button id="speed-fast" class="speed-btn px-4 py-1 w-full rounded-full transition-colors">Rápido</button>
+            </div>
         </div>
 
         <div class="separator"></div>
@@ -117,15 +127,6 @@
             <label><input type="checkbox" id="d1d2-check" class="mr-2 accent-pink-500">Distancias a focos (d1, d2)</label>
             <label><input type="checkbox" id="gravity-vector-check" checked class="mr-2 accent-blue-500">Vector Fuerza (Gravedad)</label>
             <label><input type="checkbox" id="velocity-vector-check" checked class="mr-2 accent-green-500">Vector Velocidad</label>
-        </div>
-
-        <div class="separator"></div>
-
-        <h3 class="font-bold text-base">Velocidad Simulación</h3>
-        <div class="flex justify-between items-center bg-gray-700 rounded-full p-1">
-             <button id="speed-slow" class="speed-btn px-4 py-1 w-full rounded-full transition-colors">Lento</button>
-             <button id="speed-normal" class="speed-btn px-4 py-1 w-full rounded-full transition-colors active">Normal</button>
-             <button id="speed-fast" class="speed-btn px-4 py-1 w-full rounded-full transition-colors">Rápido</button>
         </div>
         
     </div>
